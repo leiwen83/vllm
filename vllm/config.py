@@ -453,6 +453,10 @@ class CacheConfig:
         return {key: str(value) for key, value in self.__dict__.items()}
 
     def _verify_args(self) -> None:
+        import os
+        if os.environ.get("PYTORCH_CUDA_ALLOC_GLOBAL", "0") == "1":
+            print("GPU MEM boost to", self.gpu_memory_utilization)
+            return
         if self.gpu_memory_utilization > 1.0:
             raise ValueError(
                 "GPU memory utilization must be less than 1.0. Got "

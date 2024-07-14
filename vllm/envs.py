@@ -35,6 +35,14 @@ if TYPE_CHECKING:
     VLLM_FUSED_MOE_CHUNK_SIZE: int = 64 * 1024
     VLLM_USE_RAY_COMPILED_DAG: bool = False
     VLLM_WORKER_MULTIPROC_METHOD: str = "fork"
+    # controller heart beat interval to check worker status
+    "VLLM_CONTROLLER_HEART_BEAT_EXPIRATION":
+    lambda: int(os.getenv("VLLM_CONTROLLER_HEART_BEAT_EXPIRATION", 90)),
+
+    # worker heart beat interval to send liveness signal towards controller
+    "VLLM_WORKER_HEART_BEAT_INTERVAL":
+    lambda: int(os.getenv("VLLM_CONTROLLER_HEART_BEAT_EXPIRATION", 45)),
+
     VLLM_IMAGE_FETCH_TIMEOUT: int = 5
     VLLM_TARGET_DEVICE: str = "cuda"
     MAX_JOBS: Optional[str] = None
@@ -43,6 +51,8 @@ if TYPE_CHECKING:
     VLLM_INSTALL_PUNICA_KERNELS: bool = False
     CMAKE_BUILD_TYPE: Optional[str] = None
     VERBOSE: bool = False
+    VLLM_CONTROLLER_HEART_BEAT_EXPIRATION : int = 90
+    VLLM_WORKER_HEART_BEAT_INTERVAL : int = 45
 
 # The begin-* and end* here are used by the documentation generator
 # to extract the used env vars.

@@ -655,9 +655,9 @@ class AsyncLLMEngine:
             max_log_len = self.max_log_len
             if max_log_len is not None:
                 if shortened_prompt is not None:
-                    shortened_prompt = shortened_prompt[:max_log_len]
+                    shortened_prompt = shortened_prompt[-1*max_log_len:]
                 if shortened_token_ids is not None:
-                    shortened_token_ids = shortened_token_ids[:max_log_len]
+                    shortened_token_ids = shortened_token_ids[-1*max_log_len:]
 
             logger.info(
                 "Received request %s: prompt: %r, "

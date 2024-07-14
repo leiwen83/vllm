@@ -19,6 +19,7 @@ import vllm.envs as envs
 from vllm.engine.arg_utils import AsyncEngineArgs
 from vllm.engine.async_llm_engine import AsyncLLMEngine
 from vllm.entrypoints.openai.cli_args import make_arg_parser
+from vllm.entrypoints.openai.controller import Worker
 # yapf conflicts with isort for this block
 # yapf: disable
 from vllm.entrypoints.openai.protocol import (ChatCompletionRequest,
@@ -238,6 +239,10 @@ if __name__ == "__main__":
     openai_serving_completion = OpenAIServingCompletion(
         engine, model_config, served_model_names, args.lora_modules,
         args.prompt_adapters)
+
+    if args.controller is not None:
+        worker = Worker(args.controller, args.host, args.port, served_model_names, args.lora_modules, engine)
+
     openai_serving_embedding = OpenAIServingEmbedding(engine, model_config,
                                                       served_model_names)
     app.root_path = args.root_path

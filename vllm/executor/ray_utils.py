@@ -78,6 +78,13 @@ def initialize_ray_cluster(
             the default Ray cluster address.
     """
     assert_ray_available()
+    import os
+
+    local_serving = os.environ.get("LLM_SERVING_LOCAL", "OFF")
+    if local_serving == "ON":
+        serving_addr = "127.0.0.1"
+    else:
+        serving_addr = None
 
     # Connect to a ray cluster.
     if is_hip() or is_xpu():
@@ -85,7 +92,7 @@ def initialize_ray_cluster(
                  ignore_reinit_error=True,
                  num_gpus=parallel_config.world_size)
     else:
-        ray.init(address=ray_address, ignore_reinit_error=True)
+        ray.init(address=ray_address, _node_ip_address=serving_addr, ignore_reinit_error=True)
 
     if parallel_config.placement_group:
         # Placement group is already set.

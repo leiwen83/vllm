@@ -36,13 +36,8 @@ if TYPE_CHECKING:
     VLLM_USE_RAY_COMPILED_DAG: bool = False
     VLLM_WORKER_MULTIPROC_METHOD: str = "fork"
     # controller heart beat interval to check worker status
-    "VLLM_CONTROLLER_HEART_BEAT_EXPIRATION":
-    lambda: int(os.getenv("VLLM_CONTROLLER_HEART_BEAT_EXPIRATION", 90)),
-
-    # worker heart beat interval to send liveness signal towards controller
-    "VLLM_WORKER_HEART_BEAT_INTERVAL":
-    lambda: int(os.getenv("VLLM_CONTROLLER_HEART_BEAT_EXPIRATION", 45)),
-
+    VLLM_CONTROLLER_HEART_BEAT_EXPIRATION: int = 90
+    VLLM_WORKER_HEART_BEAT_INTERVAL: int = 45
     VLLM_IMAGE_FETCH_TIMEOUT: int = 5
     VLLM_TARGET_DEVICE: str = "cuda"
     MAX_JOBS: Optional[str] = None

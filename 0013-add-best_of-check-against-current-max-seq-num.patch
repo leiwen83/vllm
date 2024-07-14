@@ -1,0 +1,63 @@
+From 147434c5a4ffb4eb8ecdde27c1f7e98152fe969f Mon Sep 17 00:00:00 2001
+From: Lei Wen <wenlei03@qiyi.com>
+Date: Mon, 8 Jul 2024 21:06:21 +0800
+Subject: [PATCH 13/13] add best_of check against current max seq num
+
+And raise assert when waiting number abnormal
+
+Signed-off-by: Lei Wen <wenlei03@qiyi.com>
+---
+ vllm/core/scheduler.py | 18 +++++++++++++++++-
+ 1 file changed, 17 insertions(+), 1 deletion(-)
+
+diff --git a/vllm/core/scheduler.py b/vllm/core/scheduler.py
+index 0286c940..def3af6f 100644
+--- a/vllm/core/scheduler.py
++++ b/vllm/core/scheduler.py
+@@ -25,6 +25,7 @@ ARTIFICIAL_PREEMPTION_PROB = 0.5
+ ARTIFICIAL_PREEMPTION_MAX_CNT = 500
+ 
+ MAX_TIMEOUT=float(os.getenv("LLM_MAX_TIMEOUT", 10000))
++MAX_WAITNUM=int(os.getenv("LLM_MAX_WAITNUM", 10))
+ 
+ class PreemptionMode(enum.Enum):
+     """Preemption modes.
+@@ -642,12 +643,21 @@ class Scheduler:
+             num_new_tokens = self._get_num_new_tokens(seq_group,
+                                                       SequenceStatus.WAITING,
+                                                       enable_chunking, budget)
++            if seq_group.sampling_params.best_of > self.scheduler_config.max_num_seqs:
++                logger.warning("Seq %s Sampling number %d exceed allowed %d",
++                        seq_group.request_id, seq_group.sampling_params.n,
++                        self.scheduler_config.max_num_seqs)
++                for seq in waiting_seqs:
++                    seq.status = SequenceStatus.FINISHED_ABORTED
++                ignored_seq_groups.append(seq_group)
++                waiting_queue.popleft()
++                continue
+             elapse_time = cur_time - seq_group.metrics.arrival_time
+             if elapse_time > MAX_TIMEOUT:
+                 logger.warning("Time elapse %s %f large than max %f",
+                         seq_group.request_id, elapse_time, MAX_TIMEOUT)
+                 for seq in waiting_seqs:
+-                    seq.status = SequenceStatus.FINISHED_IGNORED
++                    seq.status = SequenceStatus.FINISHED_ABORTED
+                 ignored_seq_groups.append(seq_group)
+                 waiting_queue.popleft()
+                 continue
+@@ -931,6 +941,12 @@ class Scheduler:
+         # Schedule sequence groups.
+         # This function call changes the internal states of the scheduler
+         # such as self.running, self.swapped, and self.waiting.
++
++        # For the case that we continuous wait but no running, then
++        # there must be something wrong
++        if len(self.waiting) > MAX_WAITNUM and len(self.running) == 0:
++            raise AssertionError(f"Invalide state waiting {len(self.waiting)} running {len(self.running)} swap {len(self.swapped)}")
++
+         scheduler_outputs = self._schedule()
+         now = time.time()
+ 
+-- 
+2.34.1
+

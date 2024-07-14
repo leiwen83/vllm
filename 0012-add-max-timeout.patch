@@ -1,0 +1,52 @@
+From 6daf6b231a0baeb4667bafb655f4ed33972a050b Mon Sep 17 00:00:00 2001
+From: Lei Wen <wenlei03@qiyi.com>
+Date: Fri, 21 Jun 2024 18:28:09 +0800
+Subject: [PATCH 12/13] add max timeout
+
+Signed-off-by: Lei Wen <wenlei03@qiyi.com>
+---
+ vllm/core/scheduler.py | 14 +++++++++++++-
+ 1 file changed, 13 insertions(+), 1 deletion(-)
+
+diff --git a/vllm/core/scheduler.py b/vllm/core/scheduler.py
+index a9e0b05b..0286c940 100644
+--- a/vllm/core/scheduler.py
++++ b/vllm/core/scheduler.py
+@@ -24,6 +24,7 @@ ENABLE_ARTIFICIAL_PREEMPT = bool(
+ ARTIFICIAL_PREEMPTION_PROB = 0.5
+ ARTIFICIAL_PREEMPTION_MAX_CNT = 500
+ 
++MAX_TIMEOUT=float(os.getenv("LLM_MAX_TIMEOUT", 10000))
+ 
+ class PreemptionMode(enum.Enum):
+     """Preemption modes.
+@@ -630,7 +631,8 @@ class Scheduler:
+         waiting_queue = deque([s for s in waiting_queue])
+ 
+         leftover_waiting_sequences: Deque[SequenceGroup] = deque()
+-        while self._passed_delay(time.time()) and waiting_queue:
++        cur_time=time.time()
++        while self._passed_delay(cur_time) and waiting_queue:
+             seq_group = waiting_queue[0]
+ 
+             waiting_seqs = seq_group.get_seqs(status=SequenceStatus.WAITING)
+@@ -640,6 +642,16 @@ class Scheduler:
+             num_new_tokens = self._get_num_new_tokens(seq_group,
+                                                       SequenceStatus.WAITING,
+                                                       enable_chunking, budget)
++            elapse_time = cur_time - seq_group.metrics.arrival_time
++            if elapse_time > MAX_TIMEOUT:
++                logger.warning("Time elapse %s %f large than max %f",
++                        seq_group.request_id, elapse_time, MAX_TIMEOUT)
++                for seq in waiting_seqs:
++                    seq.status = SequenceStatus.FINISHED_IGNORED
++                ignored_seq_groups.append(seq_group)
++                waiting_queue.popleft()
++                continue
++
+             if not enable_chunking:
+                 num_prompt_tokens = waiting_seqs[0].get_len()
+                 assert num_new_tokens == num_prompt_tokens
+-- 
+2.34.1
+
